@@ -19,6 +19,7 @@ export class PessoalComponent {
     private router: Router
   ) {}
 
+
   ngOnInit() {
     if (this.global.logou !== true) {
       this.router.navigate(['']);
@@ -26,8 +27,8 @@ export class PessoalComponent {
   }
 
   idAgente: string = '';
-  nomeAgenteBusca: string = '';
-  missaoBusca: string = '';
+  // campos de busca reduzidos: apenas ID
+
   mensagem: string = '';
   showResult: boolean = false;
 
@@ -36,7 +37,8 @@ export class PessoalComponent {
 
   buscarAgente() {
     const id = Number(this.idAgente);
-    if (!id || isNaN(id)) {
+    if (!id || Number.isNaN(id)) {
+
       this.mensagem = 'Informe um ID de agente válido.';
       this.showResult = false;
       return;
@@ -61,9 +63,9 @@ export class PessoalComponent {
 
   limparCampos() {
     this.idAgente = '';
-    this.nomeAgenteBusca = '';
-    this.missaoBusca = '';
+
     this.mensagem = '';
+
     this.showResult = false;
     this.agente = null;
     this.sinais = [];

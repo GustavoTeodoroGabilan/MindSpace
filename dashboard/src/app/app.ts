@@ -26,7 +26,14 @@ export class AppModule {
   ngOnInit(){
   }
 
+  logoff(): void {
+    this.logou = false;
+    this.idAgenteSelecionado = 0;
+    this.router.navigate(['/']);
+  }
+
   telefone: string = "";
+
   email: string = "";
   idCliente: number = 0;
   idTransacao: number = 0;

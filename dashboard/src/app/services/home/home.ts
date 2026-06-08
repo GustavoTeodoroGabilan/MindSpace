@@ -14,9 +14,14 @@ export class HomeService {
     return this.http.get<any[]>(this.apiUrl + '/agentes');
   }
 
-  obterMissoes(): Observable<any[]> {
+  obterMissoes(idMissao: number): Observable<any[]> {
+    return this.http.get<any[]>(this.apiUrl + `/missoes/id/${idMissao}`);
+  }
+
+  obterTodasMissoes(): Observable<any[]> {
     return this.http.get<any[]>(this.apiUrl + '/missoes');
   }
+
 
   criarAgente(agente: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/agentes/novo`, agente);

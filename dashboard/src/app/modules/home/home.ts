@@ -6,6 +6,8 @@ import { HomeService } from '../../services/home/home';
 import { AppModule } from '../../app';
 import { Router } from '@angular/router';
 import { DashboardContextService } from '../../services/chatbot/dashboard-context.service';
+import { forkJoin, map } from 'rxjs';
+
 
 @Component({
   selector: 'dash-home',
@@ -15,23 +17,28 @@ import { DashboardContextService } from '../../services/chatbot/dashboard-contex
 })
 export class HomeComponet {
   private dashboardContext = inject(DashboardContextService);
-  
-  constructor(private homeService: HomeService, public global: AppModule, private router: Router) {}
+
+  constructor(
+    private homeService: HomeService,
+    public global: AppModule,
+    private router: Router,
+  ) {}
 
   ngOnInit() {
     if (this.global.logou == true) {
-      this.obterMissoes();
+      this.carregarMissoesNoModal();
       this.obterDados();
     } else {
       this.router.navigate(['']);
     }
   }
 
+
   pessoal: any[] = [];
   cartoes: any = [];
   listaDados: any[] = [];
-  nomes: any = []
-  listaAgentes: any = []
+  nomes: any = [];
+  listaAgentes: any = [];
 
   totalAgentes: number = 0;
   totalMissoes: number = 0;
@@ -48,6 +55,19 @@ export class HomeComponet {
   modalCriarAgente: boolean = false;
   erroModal: string = '';
   missoes: any[] = [];
+
+  private carregarMissoesNoModal(): void {
+    this.homeService.obterTodasMissoes().subscribe({
+      next: (lista: any[]) => {
+        this.missoes = Array.isArray(lista) ? lista : [];
+      },
+      error: (erro) => {
+        console.error('Erro ao buscar todas as missões:', erro);
+        this.missoes = [];
+      },
+    });
+  }
+
 
   novoAgente = {
     nome: '',
@@ -66,36 +86,32 @@ export class HomeComponet {
         this.agentesCriticos = dados.filter((item: any) => item.status === 'CRITICO').length;
         this.agentesNormal = dados.filter((item: any) => item.status === 'NORMAL').length;
 
-        this.listaAgentes = (dados || []).map((item: any) => ({
-          ...item,
-          nomeMissao: this.getNomeMissao(item.idMissao),
-        }));
+        const requisicoes = dados.map((item: any) =>
+          this.homeService.obterMissoes(item.idMissao).pipe(
+            map((missao: any) => ({
+              ...item,
+              nomeMissao: missao.nome,
+            })),
+          ),
+        );
 
-        if (!this.temAgente) {
-          this.modalCriarAgente = true;
-        }
-        this.updateDashboardContext(); // Atualizar contexto para a Luma
+        forkJoin(requisicoes).subscribe({
+          next: (lista: any[]) => {
+            this.listaAgentes = lista;
+            if (!this.temAgente) {
+              this.modalCriarAgente = true;
+            }
+            this.updateDashboardContext();
+          },
+          error: (erro) => {
+            console.error('Erro ao buscar missões:', erro);
+            this.modalCriarAgente = true;
+          },
+        });
       },
       error: (erro) => {
-        console.error('Erro ao buscar dados:', erro);
+        console.error('Erro ao buscar agentes:', erro);
         this.modalCriarAgente = true;
-      },
-    });
-  }
-
-  private getNomeMissao(idMissao: number): string {
-    const missao = this.missoes.find((m) => m.id === idMissao);
-    return missao ? missao.nome : `Missão ${idMissao}`;
-  }
-
-  obterMissoes() {
-    this.homeService.obterMissoes().subscribe({
-      next: (dados: any[]) => {
-        this.missoes = dados || [];
-        this.totalMissoes = dados.length
-      },
-      error: (erro) => {
-        console.error('Erro ao buscar missões:', erro);
       },
     });
   }
@@ -146,8 +162,8 @@ export class HomeComponet {
     });
   }
 
-  public selecionarUsuario(id:number, telefone: string, email: string, idPagamento: number) {
-        this.router.navigate(['/pessoal']);
+  public selecionarUsuario(id: number, telefone: string, email: string, idPagamento: number) {
+    this.router.navigate(['/pessoal']);
   }
 
   public formatarData(dataISO: string): string {
@@ -156,21 +172,21 @@ export class HomeComponet {
   }
 
   public formatDateToBR(isoDate: string): string {
-  const date = new Date(isoDate);
+    const date = new Date(isoDate);
 
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0'); // mês começa em 0
-  const year = date.getFullYear();
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // mês começa em 0
+    const year = date.getFullYear();
 
-  return `${day}/${month}/${year}`;
-}
+    return `${day}/${month}/${year}`;
+  }
 
   // Atualizar contexto do dashboard para a Luma
   private updateDashboardContext(): void {
     // Atualizar estatísticas
     this.dashboardContext.updateStats({
       totalTransacoes: this.totalAgentes,
-      totalTransacoesFeitas: this.totalMissoes
+      totalTransacoesFeitas: this.totalMissoes,
     });
 
     // Atualizar transações
@@ -180,4 +196,3 @@ export class HomeComponet {
     this.dashboardContext.updateClients(this.listaDados);
   }
 }
-
