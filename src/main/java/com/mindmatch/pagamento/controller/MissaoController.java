@@ -10,6 +10,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/missoes")
 @RequiredArgsConstructor
@@ -35,4 +36,10 @@ public class MissaoController {
         MissaoResponse responseBody = service.findById(id);
         return ResponseEntity.ok(responseBody);
     }
+
+    @GetMapping
+    public ResponseEntity<java.util.List<MissaoResponse>> findAll() {
+        return ResponseEntity.ok(service.findAll());
+    }
 }
+

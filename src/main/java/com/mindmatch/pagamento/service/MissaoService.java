@@ -31,4 +31,12 @@ public class MissaoService {
         return new MissaoResponse(repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Missão não encontrada, Id: " + id)));
     }
+
+    @Transactional(readOnly = true)
+    public java.util.List<MissaoResponse> findAll() {
+        return repository.findAll().stream()
+                .map(MissaoResponse::new)
+                .toList();
+    }
+
 }
