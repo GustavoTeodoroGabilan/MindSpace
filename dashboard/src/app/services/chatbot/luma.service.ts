@@ -3,8 +3,8 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
-import { DashboardContextService } from './dashboard-context.service';
 import { SpaceContextService } from './space-context.service';
+import { MindspaceContextService } from './mindspace-context.service';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -37,17 +37,14 @@ export class LumaService {
     Você tem acesso aos dados do dashboard em tempo real e pode consultar:
     
     📊 CAPACIDADES:
-    - Consultar pagamentos, clientes e cartões
     - Buscar informações de tripulantes, missões e tarefas
     - Verificar sinais de saúde de cada agente
     - Calcular estatísticas operacionais e financeiras
     - Identificar padrões de risco, carga e prioridade
-    - Fornecer insights sobre transações, saude e rotina da equipe
     
     💡 INSTRUÇÕES:
     - Use os dados do contexto fornecido para responder com precisão
-    - Quando o usuário perguntar sobre um cliente ou tripulante, busque pelo nome aproximado e responda de forma direta
-    - Forneça valores sempre em formato brasileiro (R$) quando a pergunta for financeira
+    - Quando o usuário perguntar sobre um tripulante, busque pelo nome aproximado e responda de forma direta
     - Use termos do universo espacial quando falar de agentes, missões, sinais e tarefas
     - Seja objetiva, acolhedora e técnica na medida certa
     - Se não encontrar algo, diga o que faltou e sugira o próximo passo
@@ -55,11 +52,6 @@ export class LumaService {
     - Quando houver risco, prioridade ou alerta, destaque isso logo no início da resposta
     
     🎯 EXEMPLOS DE PERGUNTAS QUE VOCÊ PODE RESPONDER:
-    - "Quanto Bruno Souza gastou?"
-    - "Qual foi a maior transação?"
-    - "Mostre as transações acima de R$ 500"
-    - "Quem são os clientes que mais gastam?"
-    - "Quantas transações foram feitas em julho?"
     - "Como está o agente Orion?"
     - "Quais sinais de saúde estão em alerta?"
     - "Quais tarefas estão pendentes na nave?"
@@ -70,7 +62,6 @@ export class LumaService {
     this.initializeChat();
   }
 
-  private dashboardContext = inject(DashboardContextService);
   private spaceContext = inject(SpaceContextService);
 
   private initializeChat(): void {
@@ -93,14 +84,9 @@ export class LumaService {
     this.chatHistorySubject.next([...currentHistory, userChatMessage]);
 
     // Adicionar contexto do dashboard automaticamente
-    const dashboardContext = this.dashboardContext.getFormattedContext();
     const spaceContext = this.spaceContext.getFormattedContext();
     const enhancedContextData = {
       ...contextData,
-      dashboardData: dashboardContext,
-      spaceData: spaceContext,
-      stats: this.dashboardContext.getStats(),
-      recentTransactions: this.dashboardContext.getTransactions().slice(0, 20),
       crewStats: this.spaceContext.getStats(),
       agents: this.spaceContext.getAgents(),
       missions: this.spaceContext.getMissions(),
@@ -203,95 +189,6 @@ export class LumaService {
       - Áreas onde há oportunidades de economia
       - Alertas sobre gastos elevados
       - Recomendações personalizadas
-    `;
-
-    return this.callGeminiAPI(prompt);
-  }
-
-  // Métodos especializados para consultas do dashboard
-
-  public searchClient(clientName: string): Observable<string> {
-    const client = this.dashboardContext.findClientByName(clientName);
-    
-    if (!client) {
-      return of(`Não encontrei nenhum cliente com o nome "${clientName}". Os clientes disponíveis são: ${this.dashboardContext.getClients().map(c => c.nome).join(', ')}`);
-    }
-
-    const stats = this.dashboardContext.getClientStats(client.id);
-    const prompt = `
-      O usuário perguntou sobre o cliente "${clientName}".
-      
-      Dados do cliente:
-      - Nome: ${client.nome}
-      - Email: ${client.email}
-      - Telefone: ${client.telefone}
-      - Valor médio de compra: R$ ${client.valorMedioCompra.toFixed(2)}
-      - Total de transações: ${stats.totalTransactions}
-      - Valor total gasto: R$ ${stats.totalAmount.toFixed(2)}
-      - Média de gastos: R$ ${stats.averageAmount.toFixed(2)}
-      - Maior transação: R$ ${stats.maxTransaction.toFixed(2)}
-      - Menor transação: R$ ${stats.minTransaction.toFixed(2)}
-      
-      Últimas transações:
-      ${stats.transactions.slice(0, 5).map((t: any) => 
-        `- R$ ${t.valor.toFixed(2)} em ${t.dataTransacao}`
-      ).join('\n')}
-      
-      Forneça uma resposta conversacional e útil sobre este cliente.
-    `;
-
-    return this.callGeminiAPI(prompt);
-  }
-
-  public analyzeTransactionsByValue(minValue?: number, maxValue?: number): Observable<string> {
-    const allTransactions = this.dashboardContext.getTransactions();
-    let filtered = allTransactions;
-    
-    if (minValue !== undefined || maxValue !== undefined) {
-      filtered = this.dashboardContext.getTransactionsByValueRange(
-        minValue || 0, 
-        maxValue || Infinity
-      );
-    }
-
-    const prompt = `
-      Analisar transações${minValue || maxValue ? ` entre R$ ${minValue || 0} e R$ ${maxValue || 'infinito'}` : ''}:
-      
-      Total de transações: ${filtered.length}
-      Valor total: R$ ${filtered.reduce((sum, t) => sum + t.valor, 0).toFixed(2)}
-      
-      Transações encontradas:
-      ${filtered.slice(0, 10).map((t, i) => 
-        `${i + 1}. ${t.nome} - R$ ${t.valor.toFixed(2)} em ${t.dataTransacao}`
-      ).join('\n')}
-      
-      Forneça uma análise clara e insights sobre essas transações.
-    `;
-
-    return this.callGeminiAPI(prompt);
-  }
-
-  public getTopClients(limit: number = 5): Observable<string> {
-    const clients = this.dashboardContext.getClients()
-      .map(c => ({
-        ...c,
-        totalGasto: c.transacoes.reduce((sum: number, t: any) => sum + t.valor, 0)
-      }))
-      .sort((a, b) => b.totalGasto - a.totalGasto)
-      .slice(0, limit);
-
-    const prompt = `
-      Top ${limit} clientes que mais gastaram:
-      
-      ${clients.map((c, i) => 
-        `${i + 1}. ${c.nome}
-           - Total gasto: R$ ${c.totalGasto.toFixed(2)}
-           - Número de transações: ${c.transacoes.length}
-           - Ticket médio: R$ ${(c.totalGasto / c.transacoes.length).toFixed(2)}
-           - Email: ${c.email}`
-      ).join('\n\n')}
-      
-      Forneça uma análise destacando os principais insights sobre esses clientes.
     `;
 
     return this.callGeminiAPI(prompt);

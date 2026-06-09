@@ -4,8 +4,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HomeService } from '../../services/home/home';
 import { AppModule } from '../../app';
+import { MindspaceContextService } from '../../services/chatbot/mindspace-context.service';
 import { Router } from '@angular/router';
-import { DashboardContextService } from '../../services/chatbot/dashboard-context.service';
 import { forkJoin, map } from 'rxjs';
 
 
@@ -16,7 +16,7 @@ import { forkJoin, map } from 'rxjs';
   styleUrl: './home.less',
 })
 export class HomeComponet {
-  private dashboardContext = inject(DashboardContextService);
+  private mindspaceContext = inject(MindspaceContextService);
 
   constructor(
     private homeService: HomeService,
@@ -34,8 +34,6 @@ export class HomeComponet {
   }
 
 
-  pessoal: any[] = [];
-  cartoes: any = [];
   listaDados: any[] = [];
   nomes: any = [];
   listaAgentes: any = [];
@@ -184,15 +182,26 @@ export class HomeComponet {
   // Atualizar contexto do dashboard para a Luma
   private updateDashboardContext(): void {
     // Atualizar estatísticas
-    this.dashboardContext.updateStats({
-      totalTransacoes: this.totalAgentes,
-      totalTransacoesFeitas: this.totalMissoes,
+    this.mindspaceContext.updateAgentsSummary({
+      totalAgentes: this.totalAgentes,
+      totalMissoes: this.totalMissoes,
+      agentesAtencao: this.agentesAtencao,
+      agentesCriticos: this.agentesCriticos,
+      agentesNormais: this.agentesNormal,
+      statusCritico: this.agentesCriticos
+    });
+
+    this.mindspaceContext.updateTasksSummary({
+      tarefasPendentes: 0,
+      tarefasAndamento: 0,
+      tarefasConcluidas: 0
     });
 
     // Atualizar transações
-    this.dashboardContext.updateTransactions(this.listaAgentes);
+    this.mindspaceContext.updateTransactions(this.listaAgentes);
 
     // Atualizar clientes
-    this.dashboardContext.updateClients(this.listaDados);
+    this.mindspaceContext.updateClients(this.listaDados);
   }
 }
+

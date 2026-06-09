@@ -32,12 +32,6 @@ export class AppModule {
     this.router.navigate(['/']);
   }
 
-  telefone: string = "";
-
-  email: string = "";
-  idCliente: number = 0;
-  idTransacao: number = 0;
-
   listaDados: any = [];
 
   selecionou: boolean = false
