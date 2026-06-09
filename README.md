@@ -9,7 +9,6 @@ Projeto do **Dashboard** com **Spring Boot (API REST)**, **Oracle (banco)** e **
 - **Backend:** API REST em Spring Boot
 - **Banco:** Oracle (produção) + H2 (desenvolvimento/testes)
 - **Frontend:** Angular em `dashboard/`
-- **Missões (Dashboard):** endpoint `GET /missoes` para popular o select no modal de cadastro do agente.
 
 ## Como Executar
 
@@ -46,14 +45,6 @@ GET /auth/validate
 Authorization: Basic <base64(username:password)>
 ```
 
-### Missões
-
-Retorna todas as missões do banco (usado na tela Home):
-
-```http
-GET /missoes
-```
-
 ## Estrutura do Projeto
 
 ```text
@@ -71,11 +62,4 @@ MindSpace/
 ├── dashboard/                           # Frontend Angular
 └── sql/                                 # Scripts SQL/DER/PL-SQL
 ```
-
-## Como o Dashboard funciona (alto nível)
-
-- Login (rota `/`)
-- Home (rota `/home`): lista agentes e carrega missões via `GET /missoes` no modal
-- Pessoal (rota `/pessoal`): busca agente pelo **ID**
-- Logoff: botão no navbar reseta `global.logou=false` e navega para `/`
 
